@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-04-08T07:06:52.354Z",
-  "imageCount": 50,
+  "generatedAt": "2026-04-08T11:00:46.262Z",
+  "imageCount": 52,
   "images": [
     {
       "file": "/images/1976-01-01_demo_01.svg",
@@ -133,11 +133,6 @@
       "title": "demo 26"
     },
     {
-      "file": "/images/2002-03-07_demo_27.svg",
-      "date": "2002-03-07",
-      "title": "demo 27"
-    },
-    {
       "file": "/images/2003-10-18_demo_28.svg",
       "date": "2003-10-18",
       "title": "demo 28"
@@ -173,9 +168,24 @@
       "title": "demo 34"
     },
     {
+      "file": "/images/2010-03-3_justina.jpg",
+      "date": "2010-03-03",
+      "title": "justina"
+    },
+    {
+      "file": "/images/2010-04-5_yara.jpg",
+      "date": "2010-04-05",
+      "title": "yara"
+    },
+    {
       "file": "/images/2010-11-11_demo_35.svg",
       "date": "2010-11-11",
       "title": "demo 35"
+    },
+    {
+      "file": "/images/2011-04-09_sarah.jpg",
+      "date": "2011-04-09",
+      "title": "sarah"
     },
     {
       "file": "/images/2011-06-22_demo_36.svg",

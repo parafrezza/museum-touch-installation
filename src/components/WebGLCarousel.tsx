@@ -2,7 +2,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { useTexture } from '@react-three/drei'
-import { MathUtils, MeshBasicMaterial, SRGBColorSpace } from 'three'
+import { MathUtils, MeshBasicMaterial, SRGBColorSpace, Texture } from 'three'
 import type { Mesh } from 'three'
 import { clamp } from '../lib/date-utils'
 import type { ImageRecord } from '../types'
@@ -11,16 +11,53 @@ type WebGLCarouselProps = {
   images: ImageRecord[]
   activeIndex: number
   onIndexChange: (index: number) => void
+  onSwipeEnd?: (details: { fromIndex: number; toIndex: number }) => void
+  onLoadingStateChange?: (isLoading: boolean) => void
 }
 
 type CarouselSceneProps = {
   images: ImageRecord[]
   focusIndex: number
+  onTexturesReady?: () => void
 }
 
-function CarouselScene({ images, focusIndex }: CarouselSceneProps) {
+const FRAME_WIDTH = 2.35
+const FRAME_HEIGHT = 4.17
+const FRAME_ASPECT = FRAME_WIDTH / FRAME_HEIGHT
+const FALLBACK_SIZE = { width: FRAME_WIDTH, height: FRAME_HEIGHT }
+type Size2D = { width: number; height: number }
+
+function inferTextureSize(texture: Texture): Size2D {
+  const source = texture.image as
+    | { width?: number; height?: number; videoWidth?: number; videoHeight?: number }
+    | undefined
+
+  const width = source?.width ?? source?.videoWidth ?? 1
+  const height = source?.height ?? source?.videoHeight ?? 1
+  return { width, height }
+}
+
+function textureToPlaneSize(texture: Texture) {
+  const { width, height } = inferTextureSize(texture)
+  const safeAspect = width > 0 && height > 0 ? width / height : FRAME_ASPECT
+
+  if (safeAspect >= FRAME_ASPECT) {
+    return {
+      width: FRAME_WIDTH,
+      height: FRAME_WIDTH / safeAspect,
+    }
+  }
+
+  return {
+    width: FRAME_HEIGHT * safeAspect,
+    height: FRAME_HEIGHT,
+  }
+}
+
+function CarouselScene({ images, focusIndex, onTexturesReady }: CarouselSceneProps) {
   const textures = useTexture(images.map((image) => image.file))
   const meshRefs = useRef<Array<Mesh | null>>([])
+  const planeSizesRef = useRef<Array<{ width: number; height: number }>>([])
   const targetFocusRef = useRef(focusIndex)
   const smoothFocusRef = useRef(focusIndex)
 
@@ -33,7 +70,9 @@ function CarouselScene({ images, focusIndex }: CarouselSceneProps) {
       texture.colorSpace = SRGBColorSpace
       texture.needsUpdate = true
     })
-  }, [textures])
+    planeSizesRef.current = textures.map((texture) => textureToPlaneSize(texture))
+    onTexturesReady?.()
+  }, [onTexturesReady, textures])
 
   useFrame((_, delta) => {
     smoothFocusRef.current = MathUtils.damp(
@@ -51,12 +90,18 @@ function CarouselScene({ images, focusIndex }: CarouselSceneProps) {
 
       const deltaIndex = index - smoothFocusRef.current
       const absDistance = Math.abs(deltaIndex)
+      const planeSize = planeSizesRef.current[index] ?? FALLBACK_SIZE
+      const distanceScale = Math.max(0.66, 1 - absDistance * 0.09)
 
       mesh.position.x = deltaIndex * 2.45
       mesh.position.y = Math.sin((index + smoothFocusRef.current) * 0.15) * 0.03
       mesh.position.z = -0.4 - absDistance * 1.4
       mesh.rotation.y = MathUtils.clamp(-deltaIndex * 0.14, -0.35, 0.35)
-      mesh.scale.setScalar(Math.max(0.66, 1 - absDistance * 0.09))
+      mesh.scale.set(
+        planeSize.width * distanceScale,
+        planeSize.height * distanceScale,
+        1,
+      )
       mesh.visible = absDistance < 6.8
 
       const material = mesh.material as MeshBasicMaterial
@@ -75,7 +120,7 @@ function CarouselScene({ images, focusIndex }: CarouselSceneProps) {
               meshRefs.current[index] = element
             }}
           >
-            <planeGeometry args={[2.35, 4.17]} />
+            <planeGeometry args={[1, 1]} />
             <meshBasicMaterial
               map={textures[index]}
               transparent
@@ -93,6 +138,8 @@ export function WebGLCarousel({
   images,
   activeIndex,
   onIndexChange,
+  onSwipeEnd,
+  onLoadingStateChange,
 }: WebGLCarouselProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null)
   const dragRef = useRef<{
@@ -103,6 +150,17 @@ export function WebGLCarousel({
   const draggingRef = useRef(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const dragIndexRef = useRef<number | null>(null)
+  const hideLoadingTimerRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    onLoadingStateChange?.(true)
+    return () => {
+      if (hideLoadingTimerRef.current) {
+        window.clearTimeout(hideLoadingTimerRef.current)
+        hideLoadingTimerRef.current = null
+      }
+    }
+  }, [images, onLoadingStateChange])
 
   function updateDragIndex(nextIndex: number | null) {
     dragIndexRef.current = nextIndex
@@ -143,6 +201,7 @@ export function WebGLCarousel({
     }
 
     draggingRef.current = false
+    const initialIndex = Math.round(dragRef.current?.startIndex ?? activeIndex)
     dragRef.current = null
     const snappedIndex = clamp(
       Math.round(dragIndexRef.current ?? activeIndex),
@@ -150,6 +209,10 @@ export function WebGLCarousel({
       images.length - 1,
     )
     updateDragIndex(null)
+    onSwipeEnd?.({
+      fromIndex: initialIndex,
+      toIndex: snappedIndex,
+    })
     onIndexChange(snappedIndex)
   }
 
@@ -160,6 +223,17 @@ export function WebGLCarousel({
     Math.max(images.length - 1, 0),
   )
 
+  function handleTexturesReady() {
+    if (hideLoadingTimerRef.current) {
+      window.clearTimeout(hideLoadingTimerRef.current)
+      hideLoadingTimerRef.current = null
+    }
+
+    hideLoadingTimerRef.current = window.setTimeout(() => {
+      onLoadingStateChange?.(false)
+    }, 180)
+  }
+
   return (
     <div className="carousel-shell" ref={viewportRef}>
       <Canvas
@@ -168,7 +242,11 @@ export function WebGLCarousel({
         gl={{ antialias: true, alpha: false }}
       >
         <Suspense fallback={null}>
-          <CarouselScene images={images} focusIndex={interactiveIndex} />
+          <CarouselScene
+            images={images}
+            focusIndex={interactiveIndex}
+            onTexturesReady={handleTexturesReady}
+          />
         </Suspense>
       </Canvas>
 

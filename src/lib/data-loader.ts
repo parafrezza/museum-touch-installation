@@ -13,6 +13,11 @@ const FALLBACK_SETTINGS: RawSettings = {
   locale: 'it-IT',
 }
 
+function withTimestampQuery(url: string): string {
+  const separator = url.includes('?') ? '&' : '?'
+  return `${url}${separator}_ts=${Date.now()}`
+}
+
 function normalizeSettings(value: Partial<RawSettings>): InstallationSettings {
   const currentYear = new Date().getFullYear()
 
@@ -92,10 +97,7 @@ function normalizeManifest(
   return normalized
 }
 
-export async function loadInstallationData(): Promise<{
-  settings: InstallationSettings
-  images: ImageRecord[]
-}> {
+export async function loadSettings(): Promise<InstallationSettings> {
   const settingsResponse = await fetch('/config/settings.json', {
     cache: 'no-store',
   })
@@ -104,9 +106,15 @@ export async function loadInstallationData(): Promise<{
   }
 
   const rawSettings = (await settingsResponse.json()) as Partial<RawSettings>
-  const settings = normalizeSettings(rawSettings)
+  return normalizeSettings(rawSettings)
+}
 
-  const manifestResponse = await fetch(settings.manifestPath, { cache: 'no-store' })
+export async function loadImagesFromManifest(
+  settings: InstallationSettings,
+): Promise<ImageRecord[]> {
+  const manifestResponse = await fetch(withTimestampQuery(settings.manifestPath), {
+    cache: 'no-store',
+  })
   if (!manifestResponse.ok) {
     throw new Error(
       `Impossibile leggere il manifest immagini (${manifestResponse.status})`,
@@ -114,7 +122,15 @@ export async function loadInstallationData(): Promise<{
   }
 
   const manifest = (await manifestResponse.json()) as ImagesManifest
-  const images = normalizeManifest(manifest, settings)
+  return normalizeManifest(manifest, settings)
+}
+
+export async function loadInstallationData(): Promise<{
+  settings: InstallationSettings
+  images: ImageRecord[]
+}> {
+  const settings = await loadSettings()
+  const images = await loadImagesFromManifest(settings)
   if (images.length === 0) {
     throw new Error('Nessuna immagine valida trovata nel manifest.')
   }

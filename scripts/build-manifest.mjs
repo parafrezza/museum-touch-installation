@@ -17,7 +17,7 @@ const SUPPORTED_EXTENSIONS = new Set([
   '.svg',
 ])
 
-const FILENAME_DATE_REGEX = /^(\d{4})-(\d{2})-(\d{2})(?:[_-](.+))?\.[a-z0-9]+$/i
+const FILENAME_DATE_REGEX = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[_-](.+))?\.[a-z0-9]+$/i
 
 function isValidDateParts(year, month, day) {
   if (month < 1 || month > 12 || day < 1 || day > 31) {
@@ -36,6 +36,10 @@ function humanizeSlug(value) {
     return ''
   }
   return value.replace(/[_-]+/g, ' ').trim()
+}
+
+function pad2(value) {
+  return String(value).padStart(2, '0')
 }
 
 async function buildManifest() {
@@ -74,7 +78,7 @@ async function buildManifest() {
       continue
     }
 
-    const date = `${match[1]}-${match[2]}-${match[3]}`
+    const date = `${match[1]}-${pad2(month)}-${pad2(day)}`
     const inferredTitle = humanizeSlug(match[4]) || `Archivio ${date}`
 
     images.push({

@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+public/images/2010-03-3_justina.jpg
+.gitignore
+public/images/2011-04-09_sarah.jpg
+public/images/2010-04-5_yara.jpg

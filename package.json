@@ -4,12 +4,18 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev-live.mjs",
+    "dev:vite": "vite",
+    "dev:live": "node scripts/dev-live.mjs",
+    "build:prod": "npm run build:manifest && npm run build",
+    "start:prod": "node scripts/start-prod.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "build:manifest": "node scripts/build-manifest.mjs",
-    "generate:demo": "node scripts/generate-demo-images.mjs"
+    "generate:demo": "node scripts/generate-demo-images.mjs",
+    "watch:images": "node scripts/watch-images.mjs",
+    "logger:server": "node scripts/logger-server.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

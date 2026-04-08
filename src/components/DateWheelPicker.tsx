@@ -13,6 +13,7 @@ type WheelColumnProps = {
   options: WheelOption[]
   value: number
   onChange: (value: number) => void
+  onSwipeEnd?: (details: { column: string; from: number; to: number }) => void
 }
 
 type DateWheelPickerProps = {
@@ -20,6 +21,7 @@ type DateWheelPickerProps = {
   maxYear: number
   value: DateParts
   onChange: (value: DateParts) => void
+  onSwipeEnd?: (details: { column: string; from: number; to: number }) => void
 }
 
 const ITEM_HEIGHT = 46
@@ -31,7 +33,7 @@ function optionIndexForValue(options: WheelOption[], value: number): number {
   return foundIndex >= 0 ? foundIndex : 0
 }
 
-function WheelColumn({ label, options, value, onChange }: WheelColumnProps) {
+function WheelColumn({ label, options, value, onChange, onSwipeEnd }: WheelColumnProps) {
   const [dragOffset, setDragOffset] = useState<number | null>(null)
   const dragOffsetRef = useRef<number | null>(null)
   const dragRef = useRef<{
@@ -39,6 +41,7 @@ function WheelColumn({ label, options, value, onChange }: WheelColumnProps) {
     startY: number
     startOffset: number
   } | null>(null)
+  const gestureStartValueRef = useRef(value)
   const emittedIndexRef = useRef(optionIndexForValue(options, value))
 
   const baseOffset = -optionIndexForValue(options, value) * ITEM_HEIGHT
@@ -72,6 +75,7 @@ function WheelColumn({ label, options, value, onChange }: WheelColumnProps) {
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     event.currentTarget.setPointerCapture(event.pointerId)
     emittedIndexRef.current = optionIndexForValue(options, value)
+    gestureStartValueRef.current = options[emittedIndexRef.current].value
     dragRef.current = {
       pointerId: event.pointerId,
       startY: event.clientY,
@@ -98,7 +102,13 @@ function WheelColumn({ label, options, value, onChange }: WheelColumnProps) {
     }
 
     const snappedIndex = indexFromOffset(dragOffsetRef.current ?? baseOffset)
+    const finalValue = options[snappedIndex].value
     emitIndex(snappedIndex)
+    onSwipeEnd?.({
+      column: label,
+      from: gestureStartValueRef.current,
+      to: finalValue,
+    })
     updateDragOffset(null)
     dragRef.current = null
   }
@@ -157,6 +167,7 @@ export function DateWheelPicker({
   maxYear,
   value,
   onChange,
+  onSwipeEnd,
 }: DateWheelPickerProps) {
   const yearOptions: WheelOption[] = []
   for (let year = minYear; year <= maxYear; year += 1) {
@@ -198,18 +209,21 @@ export function DateWheelPicker({
         options={yearOptions}
         value={value.year}
         onChange={updateYear}
+        onSwipeEnd={onSwipeEnd}
       />
       <WheelColumn
         label="MESE"
         options={monthOptions}
         value={value.month}
         onChange={updateMonth}
+        onSwipeEnd={onSwipeEnd}
       />
       <WheelColumn
         label="GIORNO"
         options={dayOptions}
         value={value.day}
         onChange={updateDay}
+        onSwipeEnd={onSwipeEnd}
       />
     </div>
   )
