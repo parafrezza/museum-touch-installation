@@ -20,6 +20,22 @@ npm run dev
 - Immagini: `/public/images`
 - Manifest immagini: `/public/images/manifest.json`
 
+### Finestra Texture (prefetch + GC)
+
+In `settings.json` puoi regolare la cache texture del carosello:
+
+```json
+"textureWindow": {
+  "prefetchBefore": 8,
+  "prefetchAfter": 8,
+  "maxResident": 24
+}
+```
+
+- `prefetchBefore`: quante immagini tenere prima dell’indice corrente.
+- `prefetchAfter`: quante immagini tenere dopo l’indice corrente.
+- `maxResident`: tetto massimo texture in memoria; oltre questo limite le texture fuori finestra vengono `dispose()`.
+
 ### Naming immagini
 
 Le immagini devono iniziare con la data:

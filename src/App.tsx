@@ -351,6 +351,7 @@ function App() {
             onIndexChange={handleCarouselIndexChange}
             onSwipeEnd={handleCarouselSwipeEnd}
             onLoadingStateChange={setIsCarouselLoading}
+            textureWindow={settings.textureWindow}
           />
           {showSyncSpinner && (
             <div className="carousel-sync-overlay">

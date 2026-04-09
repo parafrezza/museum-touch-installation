@@ -4,6 +4,7 @@ import type {
   ImagesManifest,
   InstallationSettings,
   RawSettings,
+  TextureWindowSettings,
 } from '../types'
 
 const FALLBACK_SETTINGS: RawSettings = {
@@ -11,6 +12,11 @@ const FALLBACK_SETTINGS: RawSettings = {
   yearEnd: 'current',
   manifestPath: '/images/manifest.json',
   locale: 'it-IT',
+  textureWindow: {
+    prefetchBefore: 8,
+    prefetchAfter: 8,
+    maxResident: 24,
+  },
 }
 
 function withTimestampQuery(url: string): string {
@@ -34,6 +40,30 @@ function normalizeSettings(value: Partial<RawSettings>): InstallationSettings {
       ? currentYear
       : Math.max(yearStart, Math.floor(rawYearEnd))
 
+  const rawTextureWindow = value.textureWindow ?? FALLBACK_SETTINGS.textureWindow ?? {}
+  const normalizeTextureWindow = (
+    input: Partial<TextureWindowSettings>,
+  ): TextureWindowSettings => {
+    const prefetchBefore = Math.max(
+      1,
+      Math.min(80, Math.floor(input.prefetchBefore ?? 8)),
+    )
+    const prefetchAfter = Math.max(
+      1,
+      Math.min(80, Math.floor(input.prefetchAfter ?? 8)),
+    )
+    const minResident = prefetchBefore + prefetchAfter + 1
+    const maxResident = Math.max(
+      minResident,
+      Math.min(200, Math.floor(input.maxResident ?? 24)),
+    )
+    return {
+      prefetchBefore,
+      prefetchAfter,
+      maxResident,
+    }
+  }
+
   return {
     yearStart,
     yearEnd,
@@ -43,6 +73,7 @@ function normalizeSettings(value: Partial<RawSettings>): InstallationSettings {
         : FALLBACK_SETTINGS.manifestPath,
     locale:
       typeof value.locale === 'string' ? value.locale : FALLBACK_SETTINGS.locale,
+    textureWindow: normalizeTextureWindow(rawTextureWindow),
   }
 }
 

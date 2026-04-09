@@ -9,6 +9,13 @@ export type RawSettings = {
   yearEnd: number | 'current'
   manifestPath: string
   locale: string
+  textureWindow?: Partial<TextureWindowSettings>
+}
+
+export type TextureWindowSettings = {
+  prefetchBefore: number
+  prefetchAfter: number
+  maxResident: number
 }
 
 export type InstallationSettings = {
@@ -16,6 +23,7 @@ export type InstallationSettings = {
   yearEnd: number
   manifestPath: string
   locale: string
+  textureWindow: TextureWindowSettings
 }
 
 export type ManifestImageEntry = {

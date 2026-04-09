@@ -2,5 +2,10 @@
   "yearStart": 1950,
   "yearEnd": "current",
   "manifestPath": "/images/manifest.json",
-  "locale": "it-IT"
+  "locale": "it-IT",
+  "textureWindow": {
+    "prefetchBefore": 8,
+    "prefetchAfter": 8,
+    "maxResident": 24
+  }
 }
